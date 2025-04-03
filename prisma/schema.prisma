@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Scraper model - represents a scraper configuration
+model Scraper {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  enabled     Boolean      @default(true)
+  config      Json?        // Configuration for the scraper
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  runs        ScraperRun[] // Relationship to scraper runs
+}
+
+// ScraperRun model - represents a single run of a scraper
+model ScraperRun {
+  id          String       @id @default(uuid())
+  scraperId   String       // Foreign key to Scraper
+  scraper     Scraper      @relation(fields: [scraperId], references: [id])
+  status      String       // pending, running, completed, failed
+  startedAt   DateTime?    // When the run started
+  completedAt DateTime?    // When the run completed or failed
+  error       String?      // Error message if failed
+  statistics  Json?        // Statistics about the run
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  lkqProducts LkqProduct[] // Relationship to LKQ products
+}
+
+// LkqProduct model - represents a product from LKQ
+model LkqProduct {
+  id                    String     @id @default(uuid())
+  sku                   String     @unique // Product SKU/number
+  title                 String     // Product title
+  description           String?    // Product description
+  descriptionRetail     String?    // Retail description
+  price                 Float?     // Product price
+  listPrice             Float?     // List price
+  corePrice             Float?     // Core price
+  imageUrl              String?    // URL to product image
+  productUrl            String?    // URL to product page
+  categoryUrl           String?    // URL of the category
+  category              String?    // Category name
+  mileage               Int?       // Vehicle mileage
+  location              String?    // Location
+  yardCity              String?    // Yard city
+  yardState             String?    // Yard state
+  sourceVehicleYear     String?    // Source vehicle year
+  sourceVehicleMake     String?    // Source vehicle make
+  sourceVehicleModel    String?    // Source vehicle model
+  sourceVehicleData     Json?      // Full source vehicle data as JSON
+  fitments              Json?      // Fitments data as JSON
+  fitmentJson           Json?      // Fitment JSON data
+  interchange           String?    // Interchange number
+  type                  String?    // Product type
+  code                  String?    // Product code
+  unitOfMeasureCode     String?    // Unit of measure code
+  unitOfMeasure         String?    // Unit of measure
+  companyCode           String?    // Company code
+  ftcDisplay            String?    // FTC display
+  freeShippingEligible  Boolean?   // Free shipping eligible
+  isReman               Boolean?   // Is remanufactured
+  requireVin            Boolean?   // Requires VIN
+  displayFinancing      Boolean?   // Display financing
+  remanFinanceIneligible Boolean?  // Remanufactured finance ineligible
+  availability          String?    // Availability status
+  images                Json?      // Images data as JSON
+  categories            Json?      // Categories data as JSON
+  pricing               Json?      // Pricing data as JSON
+  catalog               Json?      // Catalog data as JSON
+  scraperRunId          String     // Foreign key to ScraperRun
+  scraperRun            ScraperRun @relation(fields: [scraperRunId], references: [id])
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  @@index([sku])
+  @@index([scraperRunId])
+}
+
+// For LKQ specific configuration
+model LkqScraperConfig {
+  id                   String   @id @default(uuid())
+  maxProductsToScrape  Int      @default(10000)
+  batchSize            Int      @default(50)
+  categories           Json     // Array of categories to scrape
+  rateLimitDelay       Int      @default(500) // milliseconds
+  maxRetries           Int      @default(3)
+  parallelRequests     Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+} 
